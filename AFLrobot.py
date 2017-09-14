@@ -1,24 +1,28 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import fuzzer
 
 
 
-
 class AFLrobot:
-    def __init__(self, path, workdir):
+    def __init__(self, path, workdir = 'work'):
         '''
         todo : select seeds for different challenge
 
         '''
-        pass
+        self.fuzzer = fuzzer.Fuzzer(path,work)
     
     def kill(self):
-        pass
+        self.fuzzer.kill()
 
     def start(self):
-        pass
+        self.fuzzer.start()
     
     def terminate(self):
-        pass
+        self.fuzzer.kill()
 
     def is_alive(self):
-        pass
+        return self.fuzzer.alive()
+
+    def get_crashes(self):
+        return self.fuzzer.crashes()

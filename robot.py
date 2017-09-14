@@ -18,6 +18,7 @@ import multiprocessing
 import logging
 from datetime import datetime
 import psutil
+from AFLrobot import *
 
 
 FORMAT = '[%(levelname)s]\t%(asctime)s : %(message)s'
