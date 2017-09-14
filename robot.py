@@ -18,6 +18,7 @@ import multiprocessing
 import logging
 from datetime import datetime
 import psutil
+import fuzzer
 
 FORMAT = '[%(levelname)s]\t%(asctime)s : %(message)s'
 LOG_INFO = datetime.now().strftime('log_info_%Y_%m_%d_%H_%M.log')
@@ -587,12 +588,18 @@ def add_challenge_to_job(tick, jobs, cid_list, argv):
 
         else:
             global robo_prefix
-            if argv['robot'] == 'afl':
-                robo_prefix = "afl"
-                proc = multiprocessing.Process(target=robo_worker_afl, args=(challenge, argv, tick.current_round))
-            else:
-                robo_prefix = "dummy"
-                proc = multiprocessing.Process(target=robo_worker, args=(challenge, argv))
+            # if argv['robot'] == 'afl':
+            robo_prefix = "afl"
+            # proc = multiprocessing.Process(target=robo_worker_afl, args=(challenge, argv, tick.current_round))
+            proc = fuzzer.Fuzzer(challenge, "work")
+            '''
+            todo : select seeds for different challenge
+
+            '''
+
+            # else:
+            #     robo_prefix = "dummy"
+            #     proc = multiprocessing.Process(target=robo_worker, args=(challenge, argv))
             proc.deamon = True
             jobs[ccid] = proc
             proc.start()
