@@ -18,7 +18,7 @@ import multiprocessing
 import logging
 from datetime import datetime
 import psutil
-import fuzzer
+
 
 FORMAT = '[%(levelname)s]\t%(asctime)s : %(message)s'
 LOG_INFO = datetime.now().strftime('log_info_%Y_%m_%d_%H_%M.log')
@@ -27,7 +27,6 @@ logging.basicConfig(filename=LOG_INFO, level = logging.INFO, format=FORMAT)
 round_timeout = 600  # timeout for each challenge round
 subp_timeout = 60   # timeout for subprocess, used to kill infinite loop run in subprocess
 
-robo_prefix = "dummy"
 
 class Challenge(object):
     """Docstring for Challenge. """
@@ -84,7 +83,7 @@ def kill_child_proc(proc_pid):
 def kill_by_cid(cid):
     """kill child process (used for zombie/run out of time)"""
     try:
-        cmd_str = "{}_{}".format(robo_prefix, cid)
+        cmd_str = "{}".format(cid)
         for proc in psutil.process_iter():
             if cmd_str in proc.name():
                 logging.info("{}: Found and kill zombie proc {}:{}".format(cid, proc.pid, proc.name()))
@@ -180,15 +179,11 @@ def parse_args():
     :returns: dictionary representing the parsed arguments
 
     """
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--target', type=str, required=True)
     parser.add_argument('--submit', type=str, required=True)
     parser.add_argument('--team', type=str, required=True)
     parser.add_argument('--password', type=str, required=True)
-    parser.add_argument('--robot', type=str)
-    parser.add_argument('--aflpath', type=str)
-    parser.add_argument('--afloptions', type=str)
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -209,20 +204,7 @@ def add_challenge_to_job(tick, jobs, cid_list, argv):
             logging.info('ccid {} already in jobs'.format(ccid))
 
         else:
-            global robo_prefix
-            # if argv['robot'] == 'afl':
-            robo_prefix = "afl"
-            # proc = multiprocessing.Process(target=robo_worker_afl, args=(challenge, argv, tick.current_round))
-            proc = fuzzer.Fuzzer(challenge, "work")
-            '''
-            todo : select seeds for different challenge
-
-            '''
-
-            # else:
-            #     robo_prefix = "dummy"
-            #     proc = multiprocessing.Process(target=robo_worker, args=(challenge, argv))
-            proc.deamon = True
+            proc = AFLfuzzer(challenge, "work")
             jobs[ccid] = proc
             proc.start()
             logging.info('ccid {} added to jobs'.format(ccid))
