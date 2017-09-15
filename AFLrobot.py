@@ -7,14 +7,12 @@ import requests
 import time
 import urllib2
 import angr
+from pwn import *
+
 
 
 class AFLrobot:
     def __init__(self, cb, workdir='work', timeout=None):
-        '''
-        todo : select seeds for different challenge
-
-        '''
         self.cb = cb
         self.get_cb()
         seeds = self.get_possible_seed()
@@ -151,6 +149,16 @@ class AFLrobot:
 
     def get_possible_seed(self):
         self.project = angr.Progect(self.cb_name)
+        self.elf = ELF(self.cb_name)
+        seeds = []
+        seeds.append(self._get_seeds('fmt_seed'))
+        
         '''
         todo : 
         '''
+        
+    def _get_seeds(self, seed_name):
+        f = open(seed_name,'rb')
+        res = f.read()
+        f.close()
+        return res
