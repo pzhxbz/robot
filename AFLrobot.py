@@ -151,12 +151,17 @@ class AFLrobot:
         self.project = angr.Progect(self.cb_name)
         self.elf = ELF(self.cb_name)
         seeds = []
-        seeds.append(self._get_seeds('fmt_seed'))
+
+        seeds.append(self._get_seeds('base_seed'))
+
+        # has import printf
+        if self.elf.symbols.has_key('printf'):     
+            seeds.append(self._get_seeds('fmt_seed'))
         
         '''
         todo : 
         '''
-        
+
     def _get_seeds(self, seed_name):
         f = open(seed_name,'rb')
         res = f.read()
