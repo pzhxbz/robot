@@ -7,16 +7,19 @@ import requests
 import time
 import urllib2
 import angr
+import shlex
+import thread
 from pwn import *
 
 
 
 class AFLrobot:
     def __init__(self, cb, workdir='work', timeout=None):
-        self.cb = cb
-        self.get_cb()
+        #self.cb = cb
+        #self.get_cb()
+        self.cb_name = os.getcwd() + '/test/test'
         seeds = self.get_possible_seed()
-        self.fuzzer = fuzzer.Fuzzer(self.cb_name, work, seeds = seeds, time_limi=timeout)
+        self.fuzzer = fuzzer.Fuzzer(self.cb_name, workdir, seeds = seeds, time_limit=timeout)
         self.is_stop = False
     
     def kill(self):
@@ -25,6 +28,7 @@ class AFLrobot:
 
     def start(self):
         self.fuzzer.start()
+        thread.start_new_thread(self._watch_process,())
 
     
     def terminate(self):
@@ -60,17 +64,20 @@ class AFLrobot:
         logging.info('{} Submitting got ret_code {}, content:{}'.format(self.cb['ChallengeID'], ret, ret.text))
 
     def _watch_process(self):
-        while !self.is_stop:
-            time.sleep(30)
+        while not self.is_stop:
+            time.sleep(1)
             crashes = self.get_crashes()
             if len(crashes) == 0:
                 continue
             for crash in crashes:
-                self.submit_crash(crash)
+                print 'success'
+                #self.submit_crash(crash)
             break
         self.kill()
+
+
     
-     @staticmethod
+    @staticmethod
     def get_terminal_width():
         """get the current width of the terminal
 
@@ -92,6 +99,7 @@ class AFLrobot:
 
 
     def url_get_file(self, url, target_dir):
+
         """get file from an url
 
         :url: url of the file to be get
@@ -99,6 +107,7 @@ class AFLrobot:
         :returns: full path+name of the saved file
 
         """
+
         file_size_dl = 0
         block_sz = 8192
 
@@ -107,7 +116,7 @@ class AFLrobot:
         file_size = int(request.info().getheaders("Content-Length")[0])
         logging.info("{} Downloading:  [{}]".format(self.cb['ChallengeID'], url))
         logging.info("{} Size of file: [{}]".format(self.cb['ChallengeID'], file_size))
-        file_name = '{}/{}_{}_{}'.format(target_dir, robo_prefix, self.cb['ChallengeID'], url.split('/')[-1])
+        file_name = '{}/{}_{}'.format(target_dir, self.cb['ChallengeID'], url.split('/')[-1])
         gz_file = open(file_name, 'wb')
 
         # print the progress
@@ -155,7 +164,7 @@ class AFLrobot:
         seeds.append(self._get_seeds('base_seed'))
 
         # has import printf
-        if self.elf.symbols.has_key('printf'):     
+        if self.elf.symbols.has_key('printf'):
             seeds.append(self._get_seeds('fmt_seed'))
         
         '''
