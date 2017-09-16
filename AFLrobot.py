@@ -148,7 +148,7 @@ class AFLrobot:
         self.cb_name = self.url_get_file(self.cb['BinaryUrl'], target_dir)
 
     def get_possible_seed(self):
-        self.project = angr.Progect(self.cb_name)
+        self.project = angr.Project(self.cb_name)
         self.elf = ELF(self.cb_name)
         seeds = []
 
