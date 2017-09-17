@@ -25,7 +25,7 @@ FORMAT = '[%(levelname)s]\t%(asctime)s : %(message)s'
 LOG_INFO = datetime.now().strftime('log_info_%Y_%m_%d_%H_%M.log')
 logging.basicConfig(filename=LOG_INFO, level = logging.INFO, format=FORMAT)
 
-round_timeout = 600  # timeout for each challenge round
+round_timeout = 1200  # timeout for each challenge round
 #round_timeout = 20  # timeout for each challenge round
 subp_timeout = 60   # timeout for subprocess, used to kill infinite loop run in subprocess
 

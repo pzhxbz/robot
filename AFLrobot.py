@@ -11,6 +11,7 @@ import shlex
 import multiprocessing
 from pwn import *
 
+
 afl_path = '/home/cnss/Desktop/afl'
 
 class AFLrobot:
@@ -20,7 +21,7 @@ class AFLrobot:
             self.cb_name = os.getcwd() + '/test/test'
         else:
             self.cb_name = self.get_cb()
-        
+        self.crash_seed = []
         seeds = self.get_possible_seed()
         self.fuzzer = fuzzer.Fuzzer(self.cb_name, workdir, afl_path, seeds = seeds, time_limit=timeout)
         self.is_stop = False
@@ -29,6 +30,7 @@ class AFLrobot:
         self._password = password
         # 必须有pid 建议不要起线程，直接起进程或者fork
         self.pid = None
+        
 
     def stop_fuzz(self):
         self.is_stop = True
@@ -78,6 +80,11 @@ class AFLrobot:
         logging.info('{} Submitting got ret_code {}, content:{}'.format(self.cb['ChallengeID'], ret, ret.text))
 
     def _watch_process(self):
+        if len(self.crash_seed) > 0:
+            print('seed crash')
+	    self.submit_crash(self.crash_seed[0])
+	    self.stop_fuzz()
+            return
         while not self.is_stop:
             time.sleep(1)
             crashes = self.get_crashes()
@@ -86,7 +93,7 @@ class AFLrobot:
             for crash in crashes:
                 print 'success'
                 self.submit_crash(crash[0])
-                print crash
+                #print crash
             break
         self.stop_fuzz()
 
@@ -181,7 +188,7 @@ class AFLrobot:
 
         ret.append(self._get_seeds('base_seed'))
 	ret.append(self._get_seeds('number_seed'))
-
+	
         # has import printf
         if self.elf.symbols.has_key('printf'):
             ret.append(self._get_seeds('fmt_seed'))
@@ -189,13 +196,33 @@ class AFLrobot:
         '''
         todo : 
         '''
+	
         return ret
 
     def _get_seeds(self, seed_name):
+        seed_path = os.getcwd()+'/seeds/'+seed_name
         try:
-            f = open(os.getcwd()+'/seeds/'+seed_name,'rb')
+            f = open(seed_path,'rb')
             res = f.read()
             f.close()
+            if self._is_seeds_crash(seed_path,self.cb_name):
+		self.crash_seed.append(res)
         except Exception:
             print("seed "+seed_name+" not found !" )
         return res
+
+    def _is_seeds_crash(self,seed,bin_path):
+        try:
+            proc = subprocess.Popen([bin_path], stdin=open(seed,'rb'), stdout = subprocess.PIPE)
+        except Exception:
+            return False
+        time.sleep(0.1)
+        retcode = proc.poll()
+        if retcode is None:
+            proc.kill()
+            return False
+        if proc.returncode == -signal.SIGSEGV or proc.returncode == signal.SIGSEGV:
+            return True
+        if proc.returncode == -signal.SIGILL or proc.returncode == signal.SIGILL:
+            return True
+        return False
