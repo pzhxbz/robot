@@ -180,6 +180,7 @@ class AFLrobot:
         ret = []
 
         ret.append(self._get_seeds('base_seed'))
+	ret.append(self._get_seeds('simple_seed'))
 
         # has import printf
         if self.elf.symbols.has_key('printf'):
