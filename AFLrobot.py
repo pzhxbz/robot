@@ -180,7 +180,7 @@ class AFLrobot:
         ret = []
 
         ret.append(self._get_seeds('base_seed'))
-	ret.append(self._get_seeds('simple_seed'))
+	ret.append(self._get_seeds('number_seed'))
 
         # has import printf
         if self.elf.symbols.has_key('printf'):
@@ -192,7 +192,10 @@ class AFLrobot:
         return ret
 
     def _get_seeds(self, seed_name):
-        f = open(os.getcwd()+'/seeds/'+seed_name,'rb')
-        res = f.read()
-        f.close()
+        try:
+            f = open(os.getcwd()+'/seeds/'+seed_name,'rb')
+            res = f.read()
+            f.close()
+        except Exception:
+            print("seed "+seed_name+" not found !" )
         return res
