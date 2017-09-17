@@ -11,7 +11,7 @@ import shlex
 import multiprocessing
 from pwn import *
 
-
+afl_path = '/home/cnss/Desktop/afl'
 
 class AFLrobot:
     def __init__(self, cb, submit, user, password, workdir='work', timeout=None, debug=False):
@@ -22,7 +22,7 @@ class AFLrobot:
             self.cb_name = self.get_cb()
         
         seeds = self.get_possible_seed()
-        self.fuzzer = fuzzer.Fuzzer(self.cb_name, workdir, seeds = seeds, time_limit=timeout)
+        self.fuzzer = fuzzer.Fuzzer(self.cb_name, workdir, afl_path, seeds = seeds, time_limit=timeout)
         self.is_stop = False
         self.submit = submit
         self._user = user
