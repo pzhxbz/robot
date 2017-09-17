@@ -191,7 +191,7 @@ class AFLrobot:
         return ret
 
     def _get_seeds(self, seed_name):
-        f = open(seed_name,'rb')
+        f = open(os.getcwd()+'/seeds/'+seed_name,'rb')
         res = f.read()
         f.close()
         return res
