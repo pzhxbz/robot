@@ -8,35 +8,49 @@ import time
 import urllib2
 import angr
 import shlex
-import thread
+import multiprocessing
 from pwn import *
 
 
 
 class AFLrobot:
-    def __init__(self, cb, workdir='work', timeout=None):
-        #self.cb = cb
-        #self.get_cb()
-        self.cb_name = os.getcwd() + '/test/test'
+    def __init__(self, cb, submit, user, password, workdir='work', timeout=None, debug=False):
+        self.cb = cb
+        if debug == True:
+            self.cb_name = os.getcwd() + '/test/test'
+        else:
+            self.cb_name = self.get_cb()
+        
         seeds = self.get_possible_seed()
         self.fuzzer = fuzzer.Fuzzer(self.cb_name, workdir, seeds = seeds, time_limit=timeout)
         self.is_stop = False
-    
-    def kill(self):
-        self.is_stop = False
+        self.submit = submit
+        self._user = user
+        self._password = password
+        # 必须有pid 建议不要起线程，直接起进程或者fork
+        self.pid = None
+
+    def stop_fuzz(self):
+        self.is_stop = True
         self.fuzzer.kill()
+
 
     def start(self):
         self.fuzzer.start()
-        thread.start_new_thread(self._watch_process,())
+        proc = multiprocessing.Process(target=self._watch_process)
+        proc.start()
+        self.pid = proc.pid
+
+        #thread.start_new_thread(self._watch_process,())
 
     
     def terminate(self):
         self.is_stop = True
         self.fuzzer.kill()
 
+
     def is_alive(self):
-        return self.fuzzer.alive()
+        return self.fuzzer.alive
 
     def get_crashes(self):
         return self.fuzzer.crashes()
@@ -71,9 +85,10 @@ class AFLrobot:
                 continue
             for crash in crashes:
                 print 'success'
-                #self.submit_crash(crash)
+                self.submit_crash(crash[0])
+                print crash
             break
-        self.kill()
+        self.stop_fuzz()
 
 
     
@@ -154,22 +169,26 @@ class AFLrobot:
     def get_cb(self):
         """get the challenge binary """
         target_dir = '/tmp/'
-        self.cb_name = self.url_get_file(self.cb['BinaryUrl'], target_dir)
+        ret = self.url_get_file(self.cb['BinaryUrl'], target_dir)
+        os.system('chmod +x ' + ret)
+        return ret
 
     def get_possible_seed(self):
+        '''未完成'''
         self.project = angr.Project(self.cb_name)
         self.elf = ELF(self.cb_name)
-        seeds = []
+        ret = []
 
-        seeds.append(self._get_seeds('base_seed'))
+        ret.append(self._get_seeds('base_seed'))
 
         # has import printf
         if self.elf.symbols.has_key('printf'):
-            seeds.append(self._get_seeds('fmt_seed'))
+            ret.append(self._get_seeds('fmt_seed'))
         
         '''
         todo : 
         '''
+        return ret
 
     def _get_seeds(self, seed_name):
         f = open(seed_name,'rb')

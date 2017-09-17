@@ -19,13 +19,14 @@ import logging
 from datetime import datetime
 import psutil
 from AFLrobot import *
-
+#import AFLroboot
 
 FORMAT = '[%(levelname)s]\t%(asctime)s : %(message)s'
 LOG_INFO = datetime.now().strftime('log_info_%Y_%m_%d_%H_%M.log')
 logging.basicConfig(filename=LOG_INFO, level = logging.INFO, format=FORMAT)
 
 round_timeout = 600  # timeout for each challenge round
+#round_timeout = 20  # timeout for each challenge round
 subp_timeout = 60   # timeout for subprocess, used to kill infinite loop run in subprocess
 
 
@@ -70,8 +71,8 @@ class Challenge(object):
 def kill_child_proc(proc_pid):
     """kill all child proc by given proc_id"""
     try:
-        proc = psutil.Process(proc_pid)
-        for proc in process.get_children(recursive=True):
+        process = psutil.Process(proc_pid)
+        for proc in process.children(recursive=True):
             print "{} kill child {}".format(proc_pid, proc.pid)
             logging.info("{} kill child {}".format(proc_pid, proc.pid))
             proc.kill()
@@ -82,14 +83,15 @@ def kill_child_proc(proc_pid):
 
 
 def kill_by_cid(cid):
-    """kill child process (used for zombie/run out of time)"""
+    """kill child process (used for zombie/run out of time)
+    需要确保bin的文件名包含cid 否则该函数不起作用"""
     try:
         cmd_str = "{}".format(cid)
         for proc in psutil.process_iter():
             if cmd_str in proc.name():
                 logging.info("{}: Found and kill zombie proc {}:{}".format(cid, proc.pid, proc.name()))
                 proc.kill()
-        
+
     except Exception as e:
         logging.error(str(e))
         pass
@@ -200,12 +202,15 @@ def add_challenge_to_job(tick, jobs, cid_list, argv):
     """
     for challenge in tick.current_challenge:
         ccid = challenge['ChallengeID']
+        #if str(ccid) != '71':
+            #continue
         cid_list.append(ccid)
         if ccid in jobs:
             logging.info('ccid {} already in jobs'.format(ccid))
 
         else:
-            proc = AFLfuzzer(challenge, "work")
+            # 开始工作
+            proc = AFLrobot(challenge, argv['submit'], argv['team'], argv['password'], workdir="work")
             jobs[ccid] = proc
             proc.start()
             logging.info('ccid {} added to jobs'.format(ccid))
