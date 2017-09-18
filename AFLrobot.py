@@ -69,7 +69,7 @@ class AFLrobot:
         crash_fp.close()
 
     def start(self):
-        if self.crashes == []:
+        if self.is_stop is False:
             self.fuzzer.start()
         proc = multiprocessing.Process(target=self._watch_process)
         proc.start()
@@ -89,36 +89,50 @@ class AFLrobot:
 
     def submit_crash(self, bin_input):
         """submit the crash input to the specific url """
+        for i in range(4):
+            template = {"payloadInfo": [{
+                "ChallengeID": "",
+                "Payload": [
+                    {"Crash": ""},
+                    {"Eip": ""},
+                    {"Memwrite": ""},
+                    {"Memread": ""}],
+                "Defense": ""}]}
 
-        template = {"payloadInfo": [{
-            "ChallengeID": "",
-            "Payload": [
-                {"Crash": ""},
-                {"Eip": ""},
-                {"Memwrite": ""},
-                {"Memread": ""}],
-            "Defense": ""}]}
-
-        template["payloadInfo"][0]["ChallengeID"] = self.cb["ChallengeID"]
-        template["payloadInfo"][0]["Payload"][0]["Crash"] = base64.b64encode(
-            bin_input)
-        print '\t{} Submitting crash'.format(self.cb['ChallengeID'])
-        logging.info('{} Submitting crash'.format(self.cb['ChallengeID']))
-        temstr = json.dumps(template["payloadInfo"])
+            template["payloadInfo"][0]["ChallengeID"] = self.cb["ChallengeID"]
+            template["payloadInfo"][0]["Payload"][0]["Crash"] = base64.b64encode(
+                bin_input)
+            template["payloadInfo"][0]["Payload"][0]["Eip"] = base64.b64encode(self._try_eip_control(bin_input, i, self.cb['Eip']))
+            print '\t{} Submitting crash'.format(self.cb['ChallengeID'])
+            logging.info('{} Submitting crash'.format(self.cb['ChallengeID']))
+            temstr = json.dumps(template["payloadInfo"])
         # the API checks for user agent
-        headers = {'User-Agent': 'Mozilla/5.0'}
-        ret = requests.post(self.submit, json=template, auth=(
-            self._user, self._password), headers=headers)
-        print '\t', str(self.cb['ChallengeID']), ret, ret.text
-        logging.info('{} Submitting got ret_code {}, content:{}'.format(
-            self.cb['ChallengeID'], ret, ret.text))
+            headers = {'User-Agent': 'Mozilla/5.0'}
+            ret = requests.post(self.submit, json=template, auth=(
+                self._user, self._password), headers=headers)
+            print '\t', str(self.cb['ChallengeID']), ret, ret.text
+            logging.info('{} Submitting got ret_code {}, content:{}'.format(
+                self.cb['ChallengeID'], ret, ret.text))
+            time.sleep(10)
+    
+    def _try_eip_control(self, crash, offest, target_eip):
+        if len(crash) <= 16:
+            print 'try eip contorl failed!'
+            return crash
+        header = crash[0:16]
+        last_len = len(crash) - 16
+        offest = offest * 8
+        offest_eip = (target_eip >> offest) + ((target_eip % (1<<offest))<<(32-offest))
+        offest_eip = offest_eip % 0x100000000
+        new_crash = p32(offest_eip)*int((last_len/4)+1)
+        return header + new_crash
 
     def _watch_process(self):
         while self.is_stop is False:
             self.crashes += self.get_crashes()
             if len(self.crashes) > 0:
                 self.stop_fuzz()
-                break
+            break
             time.sleep(1)
         print('success')
         print(self.crashes)
@@ -217,7 +231,7 @@ class AFLrobot:
         # has import printf
         #if self.elf.symbols.has_key('printf'):
         ret.append(self._get_seeds('fmt_seed'))
-
+        ret.append(self._get_seeds('symbols_seed'))
         '''
         todo : 
         '''
