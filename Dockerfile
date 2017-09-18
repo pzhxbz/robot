@@ -50,6 +50,12 @@ RUN gem install \
     one_gadget && \
     rm -rf /var/lib/gems/2.3.*/cache/*
 
+RUN git clone https://github.com/mirrorer/afl && \
+    cd afl && \
+    make && \
+    cd qemu_mode && \
+    CPU_TARGET=i386 ./build_qemu_support.sh
+
 WORKDIR /ctf/work/
 
 ENTRYPOINT ["/bin/bash"]
