@@ -7,9 +7,14 @@ RUN dpkg --add-architecture i386 && \
     libc6:i386 \
     libc6-dbg:i386 \
     libc6-dbg \
+    bison \
+    build-essential \
+    debian-archive-keyring \
+    debootstrap \
     lib32stdc++6 \
     g++-multilib \
     cmake \
+    autoconf \
     net-tools \
     libffi-dev \
     libssl-dev \
