@@ -1,6 +1,8 @@
 FROM phusion/baseimage:latest
 MAINTAINER plusls <plusls@qq.com>
 
+COPY sources.list /etc/apt/.
+
 RUN dpkg --add-architecture i386 && \
     apt-get -y update && \
     apt install -y \
@@ -41,15 +43,19 @@ RUN pip3 install --no-cache-dir \
     ropper \
     unicorn \
     keystone-engine \
-    capstone
+    capstone \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/
     
 RUN pip install --no-cache-dir \
     ropgadget \
     pwntools \
     zio \
-    angr && \
-    pip install --upgrade pip && \
-    pip install --upgrade pwntools
+    angr \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    pip install --upgrade pip \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/ && \
+    pip install --upgrade pwntools \
+    -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
 RUN gem install \
     one_gadget && \
