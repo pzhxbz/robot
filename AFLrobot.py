@@ -225,6 +225,7 @@ class AFLrobot:
 
     def _get_seeds(self, seed_name):
         seed_path = os.getcwd() + '/seeds/' + seed_name
+        res = ''
         try:
             f = open(seed_path, 'rb')
             res = f.read()
