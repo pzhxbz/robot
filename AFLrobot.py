@@ -13,17 +13,10 @@ import hashlib
 from pwn import *
 from fmt import FmtPayload
 
-
-afl_path = '/home/cnss/Desktop/afl'
-
-
 class AFLrobot:
-    def __init__(self, cb, submit, user, password, workdir='work', timeout=None, debug=False):
+    def __init__(self, cb, submit, user, password, afl_path, workdir='work', timeout=None):
         self.cb = cb
-        if debug == True:
-            self.cb_name = os.getcwd() + '/test/test'
-        else:
-            self.cb_name = self.get_cb()
+        self.cb_name = self.get_cb()
         self.crashes = []
         self.bin_md5 = self.get_bin_md5()
         # 读取已有的crash
@@ -31,12 +24,11 @@ class AFLrobot:
         if self.crashes == []:
             seeds = self.get_possible_seed()
         if self.crashes == []:
-            #self.project = angr.Project(self.cb_name)
             self.fuzzer = fuzzer.Fuzzer(
                 self.cb_name, workdir, afl_path, seeds=seeds, time_limit=timeout)
-            self.is_stop = False
+            self.fuzzer_is_stop = False
         else:
-            self.is_stop = True
+            self.fuzzer_is_stop = True
             
             
         self.submit = submit
@@ -50,7 +42,7 @@ class AFLrobot:
             crash_fp = open('work/'+ str(self.cb['ChallengeID']) + '_' +self.bin_md5 + '.crash', 'r')
         except IOError:
             return
-        print('find crash text!')
+        print('%d find crash text!' % self.cb['ChallengeID'])
         self.crashes.append(crash_fp.read())
         crash_fp.close()
 
@@ -60,7 +52,7 @@ class AFLrobot:
         return hashlib.md5(fp.read()).hexdigest()
 
     def stop_fuzz(self):
-        self.is_stop = True
+        self.fuzzer_is_stop = True
         self.fuzzer.kill()
         self.write_crash_to_file()
         
@@ -77,13 +69,12 @@ class AFLrobot:
         self.pid = proc.pid
 
     def terminate(self):
-        if self.is_stop is False:
-            self.is_stop = True
+        if self.fuzzer_is_stop is False:
+            self.fuzzer_is_stop = True
             self.fuzzer.kill()
 
     def is_alive(self):
-        #return self.fuzzer.alive
-        return not self.is_stop
+        return not self.fuzzer_is_stop
 
     def get_crashes(self):
         return self.fuzzer.crashes()
@@ -99,7 +90,7 @@ class AFLrobot:
         memread_payload = ''
         memwrite_payload = ''
 
-        fmtp = FmtPayload(self,cb_name,bin_input)
+        fmtp = FmtPayload(self.cb_name,bin_input)
         if fmtp.is_fmt():
             memwrite_payload = fmtp.get_write_payload(writemem_addr,writemem_value)
             memread_payload = fmtp.get_leak_payload(memread_addr)
@@ -130,7 +121,7 @@ class AFLrobot:
             self.cb['ChallengeID'], ret, ret.text))
 
     def _watch_process(self):
-        while self.is_stop is False:
+        while self.fuzzer_is_stop is False:
             self.crashes += self.get_crashes()
             if len(self.crashes) > 0:
                 self.stop_fuzz()
@@ -223,20 +214,12 @@ class AFLrobot:
         return ret
 
     def get_possible_seed(self):
-        '''未完成'''
-        #self.elf = ELF(self.cb_name)
         ret = []
 
         ret.append(self._get_seeds('base_seed'))
         ret.append(self._get_seeds('number_seed'))
-
-        # has import printf
-        #if self.elf.symbols.has_key('printf'):
         ret.append(self._get_seeds('fmt_seed'))
-
-        '''
-        todo : 
-        '''
+        ret.append(self._get_seeds('symbols_seed'))
 
         return ret
 
@@ -246,13 +229,14 @@ class AFLrobot:
             f = open(seed_path, 'rb')
             res = f.read()
             f.close()
-            if self._is_seeds_crash(seed_path, self.cb_name):
-                self.crashes.append(res)
-                print('%d seed crash' % (self.cb['ChallengeID']))
-                self.write_crash_to_file()
-                
         except Exception:
             print("seed " + seed_name + " not found !")
+        if self._is_seeds_crash(seed_path, self.cb_name):
+            self.crashes.append(res)
+            print('%d seed crash' % (self.cb['ChallengeID']))
+            self.write_crash_to_file()
+                
+        
         return res
 
     def _is_seeds_crash(self, seed, bin_path):
