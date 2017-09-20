@@ -12,6 +12,7 @@ import multiprocessing
 import hashlib
 from pwn import *
 from fmt import FmtPayload
+from stackoverflow_detect import StackOverflow
 
 class AFLrobot:
     def __init__(self, cb, submit, user, password, afl_path, workdir='work', timeout=None):
@@ -81,7 +82,7 @@ class AFLrobot:
 
     def submit_crash(self, bin_input):
         """submit the crash input to the specific url """
-        contorl_eip = self.cb['EIP']
+        contorl_eip = int(self.cb['EIP'], 16)
         memread_addr = int(self.cb['MemoryReadPath'],16)
         writemem_addr = int(self.cb['MemoryWritePath'],16)
         writemem_value = int(self.cb['MemoryWriteContent'],16)
@@ -94,6 +95,14 @@ class AFLrobot:
         if fmtp.is_fmt():
             memwrite_payload = fmtp.get_write_payload(writemem_addr,writemem_value)
             memread_payload = fmtp.get_leak_payload(memread_addr)
+
+        #else:
+        #    p = StackOverflow('/tmp/', os.path.basename(self.cb_name), contorl_eip, 0xfffdd000, 0xffffe000)
+        #    p.main_logic(bin_input, memread_addr, writemem_addr, writemem_value)
+        #    eip_payload = p.eip_control_payload
+        #    memread_payload = p.mem_read_payload
+        #    memwrite_payload = p.mem_write_payload
+            
 
         template = {"payloadInfo": [{
             "ChallengeID": "",
@@ -109,6 +118,8 @@ class AFLrobot:
         template["payloadInfo"][0]["Payload"][0]["Eip"] = base64.b64encode(eip_payload)
         template["payloadInfo"][0]["Payload"][0]["Memwrite"] = base64.b64encode(memwrite_payload)
         template["payloadInfo"][0]["Payload"][0]["Memread"] = base64.b64encode(memread_payload)
+        template["payloadInfo"][0]["Defense"] = base64.b64encode(self.get_defense(bin_input))
+        
         print '\t{} Submitting crash'.format(self.cb['ChallengeID'])
         logging.info('{} Submitting crash'.format(self.cb['ChallengeID']))
         temstr = json.dumps(template["payloadInfo"])
@@ -119,6 +130,21 @@ class AFLrobot:
         print '\t', str(self.cb['ChallengeID']), ret, ret.text
         logging.info('{} Submitting got ret_code {}, content:{}'.format(
             self.cb['ChallengeID'], ret, ret.text))
+
+    def get_defense(self, crash_text):
+        defense_file_path = 'work/'+ str(self.cb['ChallengeID']) + '_' +self.bin_md5 + '.defense'
+        fp = open(defense_file_path, 'w')
+        fp.write('a' * len(crash_text))
+        fp.close()
+        if self._is_seeds_crash(defense_file_path, self.cb_name):
+            ret = '^.{0,%d}$' % len(crash_text)
+            print('%d defense on' % self.cb['ChallengeID'])
+        else:
+            ret = ''
+            print ('%d defense off' % self.cb['ChallengeID'])
+
+        return ret
+
 
     def _watch_process(self):
         while self.fuzzer_is_stop is False:
