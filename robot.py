@@ -26,7 +26,7 @@ LOG_INFO = datetime.now().strftime('log_info_%Y_%m_%d_%H_%M.log')
 logging.basicConfig(filename=LOG_INFO, level = logging.INFO, format=FORMAT)
 
 round_timeout = 1200  # timeout for each challenge round
-#round_timeout = 20  # timeout for each challenge round
+round_timeout = 20  # timeout for each challenge round
 subp_timeout = 60   # timeout for subprocess, used to kill infinite loop run in subprocess
 
 
@@ -187,6 +187,8 @@ def parse_args():
     parser.add_argument('--submit', type=str, required=True)
     parser.add_argument('--team', type=str, required=True)
     parser.add_argument('--password', type=str, required=True)
+    parser.add_argument('--afl_path', type=str, required=True)
+    
 
     args = parser.parse_args()
     kwargs = vars(args)
@@ -210,7 +212,7 @@ def add_challenge_to_job(tick, jobs, cid_list, argv):
 
         else:
             # 开始工作
-            proc = AFLrobot(challenge, argv['submit'], argv['team'], argv['password'], workdir="work")
+            proc = AFLrobot(challenge, argv['submit'], argv['team'], argv['password'], argv['afl_path'], workdir="work")
             jobs[ccid] = proc
             proc.start()
             logging.info('ccid {} added to jobs'.format(ccid))
