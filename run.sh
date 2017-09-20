@@ -1,1 +1,1 @@
-./robot.py --target http://rhg.ichunqiu.com/api/get_question_status --team team_4 --password vet2g335 --submit http://rhg.ichunqiu.com/api/sub_payload_defense
+python robot.py --target http://rhg.ichunqiu.com/api/get_question_status --team team_4 --password vet2g335 --submit http://rhg.ichunqiu.com/api/sub_payload_defense --afl_path /afl
